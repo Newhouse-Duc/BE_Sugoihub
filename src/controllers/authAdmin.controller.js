@@ -26,9 +26,9 @@ const setTokenCookie = (res, access_token_admin) => {
     res.cookie('access_token_admin', access_token_admin, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/api/v1/admin'
+        path: '/api'
     });
 
 
@@ -107,7 +107,8 @@ export const logoutAdmin = async (req, res) => {
         res.clearCookie('access_token_admin', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            path: '/api/v1/admin'
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+            path: '/api'
         });
 
 
