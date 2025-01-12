@@ -1,11 +1,12 @@
 
 import express from 'express'
 import { verifyAdmin } from '../middleware/authMidleware.js';
-import { loginAdmin, getAdminProfile, } from '../controllers/authAdmin.controller.js'
-import { changeActiveUser, getAllUser, getAllPost, countData, hidePost }
+import { loginAdmin, getAdminProfile, logoutAdmin } from '../controllers/authAdmin.controller.js'
+import { changeActiveUser, getAllUser, getAllPost, countData, hidePost, getallUser, getdataPost }
     from '../controllers/admin.controller.js'
 import { deletePost }
     from '../controllers/post.controller.js';
+
 const router = express.Router();
 /**
  * 
@@ -19,9 +20,12 @@ const adminRouter = (app) => {
     //auth
     router.post("/auth/login", loginAdmin)
     router.get('/auth/profile', verifyAdmin, getAdminProfile)
-
+    router.post('/auth/logout', logoutAdmin);
     // get data
     router.get('/dashboard/data', countData)
+    router.get('/dashboard/user', getallUser)
+
+    router.get('/dashboard/post', getdataPost)
     // management user
     router.get("/user/all", verifyAdmin, getAllUser)
     router.put("/user/update/:id", verifyAdmin, changeActiveUser)

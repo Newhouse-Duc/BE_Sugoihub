@@ -325,3 +325,38 @@ export const logout = async (req, res) => {
         });
     }
 };
+export const logoutadmin = async (req, res) => {
+    try {
+
+        const refreshToken = req.cookies.refreshToken;
+        if (refreshToken) {
+            await User.findOneAndUpdate(
+                { refreshToken },
+                { $set: { refreshToken: null } }
+            );
+        }
+
+        res.clearCookie('access_token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            path: '/api'
+        });
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/api'
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Đăng xuất thành công"
+        });
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message,
+        });
+    }
+};

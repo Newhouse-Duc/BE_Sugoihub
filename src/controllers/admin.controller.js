@@ -210,24 +210,30 @@ export const getAllPost = async (req, res) => {
 };
 
 
-
-
-export const countData = async (req, res) => {
+export const getallUser = async (req, res) => {
     try {
-        const activeUsers = await User.countDocuments({ isActive: true, ban: false });
-        const inactiveUsers = await User.countDocuments({ isActive: false });
-        const bannedUsers = await User.countDocuments({ ban: true });
 
-        const countposts = await Post.countDocuments();
+
+
+        const listUser = await User.find().select(
+            "-password -refreshToken -__v"
+        );
+
+
+
+
+
+        if (!listUser || listUser.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Không có người dùng nào"
+            });
+        }
 
         return res.status(200).json({
             success: true,
-            data: {
-                activeUsers,    // Người dùng đã kích hoạt và không bị ban
-                inactiveUsers,  // Người dùng chưa kích hoạt
-                bannedUsers,    // Người dùng bị ban
-                countposts,     // Tổng số bài viết
-            },
+            data: listUser,
+
         });
 
     } catch (error) {
@@ -237,5 +243,169 @@ export const countData = async (req, res) => {
         });
     }
 }
+
+
+
+
+export const countData = async (req, res) => {
+    try {
+
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date();
+        endOfDay.setHours(23, 59, 59, 999);
+
+
+        const countPostsToday = await Post.countDocuments({
+            createdAt: { $gte: startOfDay, $lte: endOfDay },
+        });
+
+
+        const activeUsers = await User.countDocuments({ isActive: true, ban: false });
+        const inactiveUsers = await User.countDocuments({ isActive: false });
+        const bannedUsers = await User.countDocuments({ ban: true });
+        const countPosts = await Post.countDocuments();
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                activeUsers,
+                inactiveUsers,
+                bannedUsers,
+                countPosts,
+                countPostsToday,
+            },
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message,
+        });
+    }
+};
+
+
+export const getdataPost = async (req, res) => {
+    try {
+
+
+
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const postsTimeline = await Post.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: thirtyDaysAgo }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: {
+                            format: "%Y-%m-%d",
+                            date: "$createdAt"
+                        }
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+
+        const postsStats = await Post.aggregate([
+            {
+                $lookup: {
+                    from: "comments",
+                    localField: "_id",
+                    foreignField: "postId",
+                    as: "comments"
+                }
+            },
+            {
+                $project: {
+                    likesCount: { $size: "$likes" },
+                    commentsCount: { $size: "$comments" }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgLikes: { $avg: "$likesCount" },
+                    avgComments: { $avg: "$commentsCount" },
+                    totalLikes: { $sum: "$likesCount" },
+                    totalComments: { $sum: "$commentsCount" }
+                }
+            }
+        ]);
+
+
+        const topPosts = (await Post.aggregate([
+            {
+                $lookup: {
+                    from: "comments",
+                    localField: "_id",
+                    foreignField: "postId",
+                    as: "comments"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "user",
+                    foreignField: "_id",
+                    as: "author"
+                }
+            },
+            {
+                $addFields: {
+                    author: { $arrayElemAt: ["$author", 0] }
+                }
+            },
+            {
+                $project: {
+                    content: 1,
+                    likesCount: { $size: "$likes" },
+                    commentsCount: { $size: "$comments" },
+                    totalInteractions: {
+                        $add: [
+                            { $size: "$likes" },
+                            { $size: "$comments" }
+                        ]
+                    },
+                    author: {
+                        username: "$author.username",
+                        avatar: "$author.avatar"
+                    },
+                    createdAt: 1
+                }
+            },
+            { $sort: { totalInteractions: -1 } },
+            { $limit: 1 }
+        ]))[0];
+
+
+
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                postsTimeline,
+                stats: postsStats[0],
+                topPosts
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message,
+        });
+    }
+};
 
 

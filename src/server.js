@@ -10,7 +10,7 @@ import { createServer } from 'http';
 import { initSocket } from './socket/socketio.js';
 dotenv.config();
 
-const port = 8888;
+const port = process.env.PORT || 8888;
 const app = express();
 const httpServer = createServer(app);
 const corsOptions = {
@@ -40,6 +40,6 @@ initSocket(httpServer);
 
 
 httpServer.listen(port, () => {
-    console.log(`Server đang chạy tại http://localhost:${port}`);
+    console.log("back end node js is running " + port);
 });
 
