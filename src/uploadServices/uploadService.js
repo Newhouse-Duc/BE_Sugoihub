@@ -108,14 +108,14 @@ export const uploadVideo = async (files) => {
                     }
                 );
 
-                // Kết nối stream với buffer
+
                 uploadStream.end(file.buffer);
             });
 
-            return result; // Trả về kết quả của từng video
+            return result;
         });
 
-        // Chờ tất cả các video được upload
+
         const uploadedVideos = await Promise.all(uploadPromises);
         return uploadedVideos;
     } catch (error) {
@@ -160,14 +160,14 @@ export const uploadVoice = async (file) => {
             .replace(/[^a-zA-Z0-9_]/g, '');
         const uniquePublicId = `${cleanPublicId}_${uuidv4()}`;
 
-        // Upload tệp
+
         const uploadedVoice = await new Promise((resolve, reject) => {
             cloudinary.uploader.upload_stream(
                 {
                     folder: 'SugoiHub_voice',
                     public_id: uniquePublicId,
                     resource_type: 'video',
-                    format: 'mp3', // Định dạng tệp đầu ra (nếu cần)
+                    format: 'mp3',
                 },
                 (error, result) => {
                     if (error) {
@@ -177,11 +177,11 @@ export const uploadVoice = async (file) => {
                         return reject(new Error('Upload thất bại'));
                     }
                     resolve({
-                        url: result.secure_url, // Đường dẫn file
-                        publicId: result.public_id, // Public ID
+                        url: result.secure_url,
+                        publicId: result.public_id,
                     });
                 }
-            ).end(file.buffer); // Truyền buffer từ file
+            ).end(file.buffer);
         });
 
         return uploadedVoice;
@@ -190,6 +190,28 @@ export const uploadVoice = async (file) => {
         throw new Error(`Upload thất bại: ${error.message}`);
     }
 };
+
+export const deleteVoice = async (publicId) => {
+    try {
+        if (!publicId) {
+            throw new Error('publicId là bắt buộc để xóa ghi âm.');
+        }
+
+        const result = await cloudinary.uploader.destroy(publicId, {
+            resource_type: 'video'
+        });
+
+        if (result.result !== 'ok') {
+            throw new Error(`Không thể xóa voice với publicId: ${publicId}`);
+        }
+
+        console.log(`Voice với publicId: ${publicId} đã được xóa.`);
+        return result;
+    } catch (error) {
+        console.error('Lỗi xóa ', error);
+        throw new Error(`Xóa thất bại: ${error.message}`);
+    }
+}
 
 
 

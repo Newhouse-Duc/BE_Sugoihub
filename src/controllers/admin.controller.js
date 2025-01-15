@@ -1,6 +1,7 @@
 import User from '../models/user.modal.js';
 import Post from '../models/post.modal.js'
-
+import Comment from '../models/comment.modal.js'
+import mongoose from 'mongoose';
 export const changeActiveUser = async (req, res) => {
     try {
         const { id } = req.params;
@@ -369,6 +370,9 @@ export const getdataPost = async (req, res) => {
             {
                 $project: {
                     content: 1,
+                    images: 1,
+                    videos: 1,
+                    visibility: 1,
                     likesCount: { $size: "$likes" },
                     commentsCount: { $size: "$comments" },
                     totalInteractions: {
@@ -408,4 +412,92 @@ export const getdataPost = async (req, res) => {
     }
 };
 
+
+export const getAllCommentByPost = async (req, res) => {
+    try {
+
+        const postId = req.params.id;
+        if (!postId) {
+            return res.status(400).json(
+                {
+                    success: false,
+                    message: "Không có bài viết cụ thể cần xem"
+                }
+            )
+        }
+
+
+        const allComment = await Comment.aggregate([
+            {
+                $match: {
+                    postId: new mongoose.Types.ObjectId(postId),
+
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "author",
+                    foreignField: "_id",
+                    as: "author",
+                },
+            },
+            {
+                $unwind: "$author",
+            },
+            {
+                $addFields: {
+                    likesCount: { $size: '$likes' },
+
+                }
+            },
+
+            {
+                $project: {
+                    content: 1,
+                    likesCount: 1,
+
+                    authorInfo: 1,
+                    parentId: 1,
+                    postId: 1,
+                    images: 1,
+                    createdAt: 1,
+
+                    'author._id': 1,
+                    'author.username': 1,
+                    'author.avatar': 1
+                }
+            }
+        ]);
+        if (allComment.length === 0) {
+            return res.status(200).json(
+                {
+                    success: true,
+                    message: "Chưa có bình luận nào  ",
+                    data: allComment
+                }
+            )
+        }
+        return res.status(200).json(
+            {
+                success: true,
+                message: "Tất cả  bình luận của bài viết ",
+                data: allComment
+
+            }
+        )
+
+
+
+    }
+    catch (error) {
+        return res.status(500).json(
+            {
+                success: false,
+                message: "Lỗi server: " + error.message
+            }
+        )
+    }
+}
 

@@ -17,7 +17,7 @@ import { addfriend, getfriendship, updateFriendship, deleteFriend }
 import { follower }
     from '../controllers/follower.controller.js';
 
-import { getChat, getMessage, uploadImagechat, createConservation, uploadVoicecloud }
+import { getChat, getMessage, uploadImagechat, createConservation, uploadVoicecloud, deleteConversation }
     from '../controllers/chat.controller.js';
 
 import { comment, getCommentByPost, replyComment, deleteComment, likeComment, getReplyComment }
@@ -99,7 +99,7 @@ const userRouter = (app) => {
     router.post("/chat/upload/image", uploadmulter.array('images', 3), uploadImagechat)
     router.post("/chat/conversation", uploadmulter.array('avatar', 1), createConservation)
     router.post("/chat/voice", uploadmulter.single('file'), uploadVoicecloud)
-
+    router.delete('/chat/conversation/:id', deleteConversation);
 
     // comment 
     router.post("/comment/post", uploadmulter.array('images', 3), comment)

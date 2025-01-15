@@ -94,7 +94,7 @@ export const getCommentByPost = async (req, res) => {
                 }
             },
             {
-                // Lấy toàn bộ các phản hồi liên quan
+
                 $graphLookup: {
                     from: "comments",
                     startWith: "$_id",
@@ -105,7 +105,7 @@ export const getCommentByPost = async (req, res) => {
             },
             {
                 $addFields: {
-                    replyCount: { $size: "$allReplies" }, // Tổng số phản hồi
+                    replyCount: { $size: "$allReplies" },
                 },
             },
             {
@@ -192,7 +192,7 @@ export const getReplyComment = async (req, res) => {
             {
                 $unwind: "$allComments"
             },
-            // Thêm stage để đếm số lượng replies cho mỗi comment
+
             {
                 $lookup: {
                     from: "comments",

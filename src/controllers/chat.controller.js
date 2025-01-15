@@ -4,7 +4,7 @@ import Message from "../models/message.modal.js";
 
 import User from '../models/user.modal.js';
 
-import { uploadImage, deleteImage, uploadVoice, uploadVideo } from '../uploadServices/uploadService.js';
+import { uploadImage, deleteImage, uploadVoice, uploadVideo, deleteVideo, deleteVoice } from '../uploadServices/uploadService.js';
 
 export const getChat = async (req, res) => {
     try {
@@ -20,7 +20,7 @@ export const getChat = async (req, res) => {
             })
             .populate({
                 path: 'lastMessage',
-                select: 'content sender createdAt',
+                select: 'content images videos voices sender createdAt',
                 populate: {
                     path: 'sender',
                     select: 'username ',
@@ -65,7 +65,7 @@ export const getChat = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: "Server error: " + error.message,
+            message: "Lỗi sever " + error.message,
         });
     }
 }
@@ -78,7 +78,7 @@ export const createConservation = async (req, res) => {
         if (!groupName || !admin || !isGroup || !members) {
             return res.status(400).json({
                 success: false,
-                message: " Thiếu thông tin cần thiết"
+                message: "Thiếu thông tin cần thiết"
             });
         }
 
@@ -89,6 +89,7 @@ export const createConservation = async (req, res) => {
                 avatar = uploadedAvatars[0];
             }
         }
+
         const newConversation = new Conversation({
             participants: members,
             isGroup,
@@ -96,12 +97,38 @@ export const createConservation = async (req, res) => {
             admin,
             avatar,
         });
-        await newConversation.save()
+        await newConversation.save();
 
+
+        const populatedConversation = await Conversation.findById(newConversation._id)
+            .populate({
+                path: "participants",
+                select: "username avatar",
+            })
+            .populate({
+                path: 'lastMessage',
+                select: 'content images videos voices sender createdAt',
+                populate: {
+                    path: 'sender',
+                    select: 'username',
+                },
+            });
+
+
+        const formattedResponse = {
+            conversationId: populatedConversation._id,
+            isGroup: true,
+            admin: populatedConversation.admin,
+            name: populatedConversation.groupName,
+            avatar: populatedConversation.avatar,
+            participants: populatedConversation.participants,
+            lastMessage: populatedConversation.lastMessage,
+            updatedAt: populatedConversation.updatedAt,
+        };
         return res.status(200).json({
             success: true,
             message: "Tạo nhóm thành công",
-            data: newConversation,
+            data: formattedResponse,
         });
 
     } catch (error) {
@@ -111,6 +138,43 @@ export const createConservation = async (req, res) => {
         });
     }
 }
+
+export const deleteConversation = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+
+        if (!id) {
+            return res.status(400).json({
+                success: false,
+                message: "ID conversation không được để trống"
+            });
+        }
+
+
+        const deletedConversation = await Conversation.findByIdAndDelete(id);
+
+
+        if (!deletedConversation) {
+            return res.status(400).json({
+                success: false,
+                message: "Không tìm thấy conversation"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Xóa conversation thành công",
+            data: deletedConversation
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message
+        });
+    }
+};
 
 export const getMessage = async (req, res) => {
     try {
@@ -132,7 +196,7 @@ export const getMessage = async (req, res) => {
         });
 
         if (!messageChat || messageChat.length === 0) {
-            return res.status(404).json({
+            return res.status(200).json({
                 success: false,
                 message: "Chưa có tin nhắn nào ",
                 data: []
@@ -218,6 +282,62 @@ export const saveMessage = async (data) => {
         throw new Error("Lỗi server: " + error.message);
     }
 };
+export const deleteMessage = async (data) => {
+    try {
+        const { messageId } = data;
+
+        if (!messageId) {
+            throw new Error("Thiếu thông tin cần thiết!");
+        }
+        const message = await Message.findById(messageId)
+
+        if (!message) {
+            throw new Error("Tin nhắn không tồn tại!");
+        }
+        const imageDeletePromises = message.images
+            .filter(image => image.publicId?.trim())
+            .map(image => deleteImage(image.publicId));
+
+
+
+        const videoDeletePromises = message.videos
+            .filter(video => video.publicId?.trim())
+            .map(video => deleteVideo(video.publicId));
+
+
+        if (message.voices?.publicId?.trim()) {
+            await deleteVoice(message.voices.publicId);
+        }
+
+
+        if (imageDeletePromises.length > 0 || videoDeletePromises.length > 0) {
+            try {
+                await Promise.all([...imageDeletePromises, ...videoDeletePromises]);
+            } catch (mediaError) {
+                return {
+                    success: false,
+                    message: "Lỗi khi xóa tin nhắn: " + mediaError.message,
+                };
+            }
+        }
+
+
+
+        await Message.findByIdAndDelete(messageId);
+        return {
+            success: true,
+            message: "Xóa tin nhắn thành công.",
+            data: message,
+        };
+
+
+
+
+
+    } catch (error) {
+        throw new Error("Lỗi server: " + error.message);
+    }
+};
 export const readMessage = async (data) => {
     try {
         const { messageId, seenBy, status } = data;
@@ -268,9 +388,34 @@ export const updateConversation = async (data) => {
         if (groupName) conversation.groupName = groupName
 
         const updatedUser = await conversation.save();
+        const populatedConversation = await Conversation.findById(updatedUser._id)
+            .populate({
+                path: "participants",
+                select: "username avatar",
+            })
+            .populate({
+                path: 'lastMessage',
+                select: 'content images videos voices sender createdAt',
+                populate: {
+                    path: 'sender',
+                    select: 'username',
+                },
+            });
+
+
+        const formattedResponse = {
+            conversationId: populatedConversation._id,
+            isGroup: true,
+            admin: populatedConversation.admin,
+            name: populatedConversation.groupName,
+            avatar: populatedConversation.avatar,
+            participants: populatedConversation.participants,
+            lastMessage: populatedConversation.lastMessage,
+            updatedAt: populatedConversation.updatedAt,
+        };
         return {
             message: "Thay đổi thành công",
-            updatedUser
+            formattedResponse
         }
 
 

@@ -180,7 +180,7 @@ export const deleteFriend = async (req, res) => {
         if (!userId || !friendId) {
             return res.status(400).json({
                 success: false,
-                message: "Thiếu thông tin cần thiết: userId hoặc friendId.",
+                message: "Thiếu thông tin cần thiết",
             });
         }
 

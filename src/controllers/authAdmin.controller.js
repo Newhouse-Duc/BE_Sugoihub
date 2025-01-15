@@ -38,7 +38,7 @@ const setTokenCookie = (res, access_token_admin) => {
 
 export const getAdminProfile = async (req, res) => {
     try {
-
+        console.log("kiểm tra gọi không ", req.cookies)
         const adminDetails = await Admin.findById(req.admin._id).select(
             "-password -__v"
         );

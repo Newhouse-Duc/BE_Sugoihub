@@ -8,10 +8,10 @@ export const newNotification = async (data) => {
         const { recipient, sender, type, entityType, entityId, text, link } = data;
 
         if (!recipient || !sender || !type || !entityType || !entityId || !text) {
-            return res.status(400).json({
+            return {
                 success: false,
                 message: "Thiếu dữ liệu cần thiết"
-            });
+            };
         }
 
         const validTypes = [
@@ -32,7 +32,7 @@ export const newNotification = async (data) => {
         }
 
 
-        const notification = await Notification.createInteractionNotification({
+        const newnotification = await Notification.createInteractionNotification({
             recipient,
             sender,
             type,
@@ -41,7 +41,7 @@ export const newNotification = async (data) => {
             text,
             link: link || ''
         });
-
+        const notification = await Notification.findById(newnotification._id).populate('sender', 'username avatar')
         return {
             success: true,
             message: "Thông báo thích bài viết đã được tạo",
@@ -74,7 +74,8 @@ export const getAllNotification = async (req, res) => {
         if (notification.length === 0) {
             return res.status(200).json({
                 success: true,
-                message: "Chưa có thông báo nào "
+                message: "Chưa có thông báo nào ",
+                data: []
             });
         }
 

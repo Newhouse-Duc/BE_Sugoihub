@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { saveMessage, updateConversation, updatemembers, readMessage } from "../controllers/chat.controller.js"
+import { saveMessage, updateConversation, updatemembers, readMessage, deleteMessage } from "../controllers/chat.controller.js"
 import { newPostNotification, newNotification, adminNotification } from "../controllers/notification.controller.js"
 let io;
 
@@ -102,17 +102,17 @@ export const initSocket = (server) => {
             })
             socket.on("likepost", async (data) => {
                 try {
-                    console.log("xem data nào ", onlineUsers)
+
                     const result = await newNotification(data)
                     const notification = result.notification;
                     const recipient = result.notification.recipient;
                     const recipientId = recipient.toString();
 
-                    // Kiểm tra trực tiếp từ object
+
                     if (onlineUsers[recipientId]) {
-                        console.log("hãy vui lên nào hòa nhọp ca vang");
+
                         const recipientInfo = onlineUsers[recipientId];
-                        console.log("xem nhận đi ", notification)
+
                         io.to(recipientInfo.socketId).emit("notifilikepost", notification);
                     } else {
                         console.log("Người dùng không online:", recipient);
@@ -130,12 +130,12 @@ export const initSocket = (server) => {
                     const result = await newNotification(data)
                     const notification = result.notification;
                     const recipient = result.notification.recipient
+                    const recipientId = recipient.toString();
 
+                    if (onlineUsers[recipientId]) {
+                        const recipientSocketId = onlineUsers[recipientId];
 
-                    if (onlineUsers.has(recipient.toString())) {
-                        const recipientSocketId = onlineUsers.get(recipient.toString());
-
-                        io.to(recipientSocketId).emit("notificommentpost", notification);
+                        io.to(recipientSocketId.socketId).emit("notificommentpost", notification);
                     }
 
                 } catch (error) {
@@ -149,12 +149,12 @@ export const initSocket = (server) => {
                     const result = await newNotification(data)
                     const notification = result.notification;
                     const recipient = result.notification.recipient
+                    const recipientId = recipient.toString();
 
+                    if (onlineUsers[recipientId]) {
+                        const recipientSocketId = onlineUsers[recipientId];
 
-                    if (onlineUsers.has(recipient.toString())) {
-                        const recipientSocketId = onlineUsers.get(recipient.toString());
-
-                        io.to(recipientSocketId).emit("notifireplycomment", notification);
+                        io.to(recipientSocketId.socketId).emit("notifireplycomment", notification);
                     }
 
                 } catch (error) {
@@ -175,12 +175,12 @@ export const initSocket = (server) => {
                         console.log("Thông báo bài viết mới đã được tạo:", notifications);
 
                         notifications.forEach((notification) => {
-                            const recipientId = notification.recipient;
+                            const recipientid = notification.recipient;
+                            const recipientId = recipientid.toString();
+                            if (onlineUsers[recipientId]) {
+                                const recipientSocketId = onlineUsers[recipientId];
 
-                            if (onlineUsers.has(recipientId.toString())) {
-                                const recipientSocketId = onlineUsers.get(recipientId.toString());
-
-                                io.to(recipientSocketId).emit("notifipost", notification);
+                                io.to(recipientSocketId.socketId).emit("notifipost", notification);
                             }
                         });
                     } else {
@@ -223,6 +223,22 @@ export const initSocket = (server) => {
                 }
             });
 
+            socket.on("messageDelete", async (data) => {
+                console.log("Message delete:", data);
+
+                try {
+                    const updatedMessage = await deleteMessage(data);
+                    console.log("updatedMessage updatedMessage:", updatedMessage);
+                    io.to(data.roomId).emit("messageDeleted", updatedMessage.data);
+                } catch (error) {
+                    console.error("Lỗi xóa tin nhắn ", error.message);
+
+                    socket.emit("messageError", {
+                        message: "Không thể gửi tin nhắn",
+                        error: error.message
+                    });
+                }
+            });
             socket.on("disconnect", () => {
                 console.log("User disconnected:", socket.id);
 

@@ -2,7 +2,7 @@
 import express from 'express'
 import { verifyAdmin } from '../middleware/authMidleware.js';
 import { loginAdmin, getAdminProfile, logoutAdmin } from '../controllers/authAdmin.controller.js'
-import { changeActiveUser, getAllUser, getAllPost, countData, hidePost, getallUser, getdataPost }
+import { changeActiveUser, getAllUser, getAllPost, countData, hidePost, getallUser, getdataPost, getAllCommentByPost }
     from '../controllers/admin.controller.js'
 import { deletePost }
     from '../controllers/post.controller.js';
@@ -36,6 +36,8 @@ const adminRouter = (app) => {
     router.get("/post/all", getAllPost)
     router.delete("/post/:id", deletePost)
     router.put("/post/:id", verifyAdmin, hidePost)
+    router.get("/post/allcomment/:id", getAllCommentByPost)
+
 
     return app.use("/api/v1/admin", router);
 }

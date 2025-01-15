@@ -40,6 +40,18 @@ const CommentSchema = new mongoose.Schema(
                 ref: 'User'
             }
         ],
+        gif:
+        {
+            url: {
+                type: String,
+
+            },
+            id: {
+                type: String,
+
+            },
+        },
+
     },
     { timestamps: true }
 );
