@@ -2,6 +2,7 @@ import Post from "../models/post.modal.js";
 import User from '../models/user.modal.js';
 import mongoose from 'mongoose';
 import Comment from "../models/comment.modal.js";
+import HistoryPost from "../models/history.post.modal.js";
 import { uploadImage, deleteImage, uploadVideo, deleteVideo } from "../uploadServices/uploadService.js";
 
 export const getAllPostUser = async (req, res) => {
@@ -232,7 +233,7 @@ export const getMyPost = async (req, res) => {
             });
         }
 
-        // Lấy ID của user đang truy cập
+
         const userId = new mongoose.Types.ObjectId(id);
 
         const posts = await Post.aggregate([
@@ -457,7 +458,7 @@ export const updatePost = async (req, res) => {
         const { id } = req.params;
         const { userId, content, visibility } = req.body;
 
-        // Parse JSON strings
+
         let imagesDelete = [];
         let videosDelete = [];
 
@@ -491,29 +492,23 @@ export const updatePost = async (req, res) => {
             });
         }
 
+        const historyPost = new HistoryPost({
+
+            user: existingPost.user,
+            content: existingPost.content,
+            postId: existingPost._id,
+            visibility: existingPost.visibility,
+            images: existingPost.images,
+            videos: existingPost.videos,
+        });
+
+        await historyPost.save();
         const updateFields = {};
         if (content) updateFields.content = content;
         if (visibility) updateFields.visibility = visibility;
 
-        // Xử lý xóa media files
-        const imageDeletePromises = imagesDelete
-            .filter(publicId => publicId)
-            .map(publicId => deleteImage(publicId));
 
-        const videoDeletePromises = videosDelete
-            .filter(publicId => publicId)
-            .map(publicId => deleteVideo(publicId));
 
-        if (imageDeletePromises.length > 0 || videoDeletePromises.length > 0) {
-            try {
-                await Promise.all([...imageDeletePromises, ...videoDeletePromises]);
-            } catch (mediaError) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Lỗi khi xóa file: " + mediaError.message,
-                });
-            }
-        }
 
         let images = [];
         let videos = [];
@@ -628,3 +623,36 @@ export const likePost = async (req, res) => {
         });
     }
 };
+
+export const gethistorypost = async (req, res) => {
+    try {
+        const { id } = req.params
+        if (!id) {
+            return res.status(404).json({
+                success: false,
+                message: "thiếu thông tin cần thiết"
+            });
+        }
+
+        const historypost = await HistoryPost.find({ postId: id }).populate("user", "avatar username")
+        if (historypost.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "Bài viết không có lịch sử chỉnh sửa",
+                data: historypost
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Lịch sử chỉnh sửa của bài viết",
+            data: historypost
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message
+        });
+    }
+}

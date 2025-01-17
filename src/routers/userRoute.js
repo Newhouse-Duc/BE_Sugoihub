@@ -2,7 +2,7 @@ import express from 'express'
 import { sendOtpemail, register, login, verifyOtp, refreshtokenUser, logout, getUserProfile }
     from '../controllers/auth.controller.js'
 
-import { getAllPostUser, createPost, deletePost, getMyPost, getPostbyUser, likePost, uploadVideoPost, updatePost }
+import { getAllPostUser, createPost, deletePost, getMyPost, getPostbyUser, likePost, uploadVideoPost, updatePost, gethistorypost }
     from '../controllers/post.controller.js';
 
 import { updateProfile, getUser, getProfileUserbyId, changePassWord, resetPasswordOtp, verifyOtpResetPassword, resetPassword, listFriend }
@@ -70,6 +70,9 @@ const userRouter = (app) => {
     router.post("/post/like", likePost)
     router.post("/post/video", uploadmulter.array('files'), uploadVideoPost)
 
+    router.get("/post/history/:id", gethistorypost)
+
+
     // notification
     router.get("/notification/getAll", verifyToken, getAllNotification)
     router.post("/notification/new/post", newPostNotification)
@@ -102,7 +105,7 @@ const userRouter = (app) => {
     router.delete('/chat/conversation/:id', deleteConversation);
 
     // comment 
-    router.post("/comment/post", uploadmulter.array('images', 3), comment)
+    router.post("/comment/post", uploadmulter.array('images', 3), verifyToken, comment)
     router.get("/comment/post/allcomment/:id", verifyToken, getCommentByPost)
     router.get("/comment/post/replycomment/:id", verifyToken, getReplyComment)
     router.post("/comment/reply", uploadmulter.array('images', 3), replyComment)

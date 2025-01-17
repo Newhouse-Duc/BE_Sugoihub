@@ -69,7 +69,9 @@ export const getAllNotification = async (req, res) => {
         }
         const limit = parseInt(req.query.limit) || 5;
         const skip = parseInt(req.query.skip) || 0;
-        const options = { limit, skip };
+        const unreadOnly = req.query.allnotify === 'true';
+
+        const options = { limit, skip, unreadOnly };
         const notification = await Notification.getNotifications(id, options)
         if (notification.length === 0) {
             return res.status(200).json({
@@ -92,6 +94,39 @@ export const getAllNotification = async (req, res) => {
         });
     }
 }
+
+export const getNotification = async (data) => {
+    try {
+        const { id } = data;
+        if (!id) {
+            return {
+                success: false,
+                message: "Thiếu dữ liệu"
+            };
+        }
+
+
+
+        const notificationCount = await Notification.countDocuments({
+            recipient: id,
+            isRead: false
+        });
+
+        return {
+            success: true,
+            message: "Số lượng thông báo chưa đọc",
+            recepient: id,
+            data: notificationCount,
+
+        };
+    } catch (error) {
+
+        return {
+            success: false,
+            message: "Lỗi server: " + error.message
+        };
+    }
+};
 export const isReadNotification = async (req, res) => {
     try {
         const notificationIds = req.body;

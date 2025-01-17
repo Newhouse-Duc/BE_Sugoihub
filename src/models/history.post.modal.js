@@ -7,7 +7,7 @@ export const HistoryPostSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    post: {
+    postId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Post',
         required: true
@@ -41,12 +41,7 @@ export const HistoryPostSchema = new mongoose.Schema({
             },
         }
     ],
-    likes: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        }
-    ],
+
     hide: {
         type: Boolean,
         default: false,

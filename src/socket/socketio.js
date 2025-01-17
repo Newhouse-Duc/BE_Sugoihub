@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { saveMessage, updateConversation, updatemembers, readMessage, deleteMessage } from "../controllers/chat.controller.js"
-import { newPostNotification, newNotification, adminNotification } from "../controllers/notification.controller.js"
+import { newPostNotification, newNotification, adminNotification, getNotification } from "../controllers/notification.controller.js"
 let io;
 
 export const initSocket = (server) => {
@@ -27,7 +27,8 @@ export const initSocket = (server) => {
                 console.log("Có data: ", data);
                 try {
                     const newmember = await updatemembers(data)
-                    io.emit("updatemember", newmember);
+                    console.error("thay đổi  thêm   ", newmember);
+                    io.emit("updatemember", newmember.data);
 
                 } catch (error) {
                     console.error("Lỗi lưu nhé  ", error.message);
@@ -42,8 +43,8 @@ export const initSocket = (server) => {
             socket.on("deletemember", async (data) => {
                 try {
                     const newmember = await updatemembers(data)
-                    io.emit("afterdeletemember", newmember);
-
+                    io.emit("updatemember", data);
+                    console.error("thay đổi xóa  ròi  ", newmember);
                 } catch (error) {
                     console.error("Lỗi lưu nhé xóa  ", error.message);
                     socket.emit("messageError", {
@@ -51,8 +52,8 @@ export const initSocket = (server) => {
                         error: error.message
                     });
                 }
-                console.log("Có data xóa: ", data);
-                io.emit("updatemember", data);
+
+
             });
             socket.on("updategroupchat", async (data) => {
 
@@ -72,10 +73,35 @@ export const initSocket = (server) => {
                     });
                 }
 
-
-
-
             });
+            socket.on("countnotification", async (data) => {
+                try {
+
+                    const notification = await getNotification(data)
+
+                    const recipient = notification.recepient;
+                    const recipientId = recipient.toString();
+
+                    console.log("ủa ", notification.data);
+                    if (onlineUsers[recipientId]) {
+
+                        const recipientInfo = onlineUsers[recipientId];
+                        console.log("ủa ", notification.data);
+                        io.to(recipientInfo.socketId).emit("notificationcount", notification.data);
+
+                    } else {
+                        console.log("đã xảy ra lỗi");
+                    }
+
+                } catch (error) {
+                    console.error("Lỗi lưu nhé xóa  ", error.message);
+                    socket.emit("messageError", {
+                        message: "Không thể gửi tin nhắn",
+                        error: error.message
+                    });
+                }
+
+            })
             socket.on("userOnline", ({ userId, role }) => {
                 console.log("User/Admin Online:", userId, role);
                 onlineUsers[userId] = { socketId: socket.id, role };

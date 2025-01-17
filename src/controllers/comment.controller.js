@@ -4,14 +4,25 @@ import { uploadImage, deleteImage } from "../uploadServices/uploadService.js";
 import mongoose from 'mongoose';
 export const comment = async (req, res) => {
     try {
-
         const { author, content, postId } = req.body;
+
+        let gif = null;
+        if (req.body.gif) {
+            try {
+                gif = JSON.parse(req.body.gif);
+
+            } catch (e) {
+                console.error("Error parsing GIF data:", e);
+            }
+        }
+
         if (!content || !author || !postId) {
             return res.status(400).json({
                 success: false,
-                message: "Thiếu thông tin cần thiết ",
+                message: "Thiếu thông tin cần thiết",
             });
         }
+
         let images = [];
         if (req.files && req.files.length > 0) {
             images = await uploadImage(req.files);
@@ -22,24 +33,91 @@ export const comment = async (req, res) => {
             content,
             postId,
             images,
+            gif: gif
         });
 
         await newComment.save();
 
+        const comment = await Comment.aggregate([
+            {
+                $match: {
+                    postId: new mongoose.Types.ObjectId(postId),
+
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "author",
+                    foreignField: "_id",
+                    as: "author",
+                },
+            },
+            {
+                $unwind: "$author",
+            },
+            {
+                $addFields: {
+                    likesCount: { $size: '$likes' },
+                    isLiked: {
+                        $cond: {
+                            if: { $eq: [{ $type: req.user }, 'missing'] },
+                            then: false,
+                            else: {
+                                $in: [
+                                    { $toObjectId: req.user._id.toString() },
+                                    '$likes'
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+
+                $graphLookup: {
+                    from: "comments",
+                    startWith: "$_id",
+                    connectFromField: "_id",
+                    connectToField: "parentId",
+                    as: "allReplies",
+                },
+            },
+            {
+                $addFields: {
+                    replyCount: { $size: "$allReplies" },
+                },
+            },
+            {
+                $project: {
+                    content: 1,
+                    likesCount: 1,
+                    isLiked: 1,
+                    postId: 1,
+                    authorInfo: 1,
+                    gif: 1,
+                    parentId: 1,
+                    images: 1,
+                    createdAt: 1,
+                    replyCount: 1,
+                    'author._id': 1,
+                    'author.username': 1,
+                    'author.avatar': 1
+                }
+            }
+        ]);
         return res.status(201).json({
             success: true,
-            message: "Đã bình luận bài viết thành công ",
-            comment: newComment,
+            message: "Đã bình luận bài viết thành công",
+            data: comment,
         });
-
-    }
-    catch (error) {
-        return res.status(500).json(
-            {
-                success: false,
-                message: "Lỗi server: " + error.message
-            }
-        )
+    } catch (error) {
+        console.error("Server error:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Lỗi server: " + error.message
+        });
     }
 }
 
@@ -114,6 +192,7 @@ export const getCommentByPost = async (req, res) => {
                     likesCount: 1,
                     isLiked: 1,
                     authorInfo: 1,
+                    gif: 1,
                     parentId: 1,
                     postId: 1,
                     images: 1,
@@ -257,6 +336,7 @@ export const getReplyComment = async (req, res) => {
                     content: 1,
                     parentId: 1,
                     postId: 1,
+                    gif: 1,
                     createdAt: 1,
                     likesCount: 1,
                     replyCount: 1,
@@ -296,6 +376,7 @@ export const getReplyComment = async (req, res) => {
 export const replyComment = async (req, res) => {
     try {
         const { author, content, postId, parentId } = req.body;
+
         if (!content || !author || !postId || !parentId) {
             return res.status(400).json({
                 success: false,
@@ -306,17 +387,27 @@ export const replyComment = async (req, res) => {
         if (req.files && req.files.length > 0) {
             images = await uploadImage(req.files);
         }
+        let gif = null;
+        if (req.body.gif) {
+            try {
+                gif = JSON.parse(req.body.gif);
+
+            } catch (e) {
+                console.error("Error parsing GIF data:", e);
+            }
+        }
 
         const newComment = new Comment({
             author,
             content,
             postId,
             images,
-            parentId
+            parentId,
+            gif: gif
         });
 
         await newComment.save();
-
+        console.log("xem cs gif k ", newComment)
         return res.status(201).json({
             success: true,
             message: "Đã bình luận bài viết thành công ",

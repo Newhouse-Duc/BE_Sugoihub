@@ -449,18 +449,28 @@ export const updatemembers = async (data) => {
             conversationId,
             updatemember,
             { new: true }
-        );
+        ).populate("participants", "username avatar");
 
         if (!updatedConversation) {
             return { message: "Không tìm thấy cuộc trò chuyện sau khi cập nhật" };
         }
+        let newMembersInfo = [];
+        if (members) {
+            newMembersInfo = updatedConversation.participants.filter(
+                (participant) => members.includes(participant._id.toString())
+            );
+        }
+
+
 
         return {
             message: "Cập nhật thành công",
-            updatedConversation
+            data: {
+                conversationId: updatedConversation._id,
+                members: newMembersInfo || []
+            }
+
         };
-
-
 
     } catch (error) {
         throw new Error("Lỗi server: " + error.message);
