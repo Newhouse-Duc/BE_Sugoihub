@@ -31,9 +31,14 @@ const EmailTemplate = (otp, purpose = "Xác nhận tài khoản") => {
                 padding: 20px 0;
                 border-bottom: 2px solid #f0f0f0;
             }
-            .logo {
-                max-width: 150px;
-                height: auto;
+            .logo-text {
+                font-size: 32px;
+                font-weight: bold;
+                color: #333;
+                margin-bottom: 10px;
+            }
+            .logo-text span {
+                color: #ff6b6b; /* Màu chữ cho "Hub" */
             }
             .content {
                 padding: 30px 20px;
@@ -91,7 +96,9 @@ const EmailTemplate = (otp, purpose = "Xác nhận tài khoản") => {
     <body>
         <div class="container">
             <div class="header">
-                <img src="https://your-logo-url.com/logo.png" alt="Logo" class="logo">
+                <div class="logo-text">
+                    Sugoi<span>Hub</span>
+                </div>
                 <h1 style="color: #333;">${purpose}</h1>
             </div>
             
@@ -117,7 +124,7 @@ const EmailTemplate = (otp, purpose = "Xác nhận tài khoản") => {
             </div>
 
             <div class="footer">
-                <p>© 2024 Your Company Name. All rights reserved.</p>
+                <p>© 2024 SugoiHub. All rights reserved.</p>
                 <p>Địa chỉ công ty của bạn</p>
                 <p>
                     <a href="#" style="color: #666;">Privacy Policy</a> | 
@@ -129,6 +136,5 @@ const EmailTemplate = (otp, purpose = "Xác nhận tài khoản") => {
     </html>
     `;
 };
-
 
 export default EmailTemplate;
