@@ -34,7 +34,7 @@ const router = express.Router();
 
 const userRouter = (app) => {
     // ping sever uptimerobot
-    app.get('/ping', (req, res) => {
+    router.get('/ping', (req, res) => {
         res.status(200).json({
             message: "sever đang hoạt động"
         });
