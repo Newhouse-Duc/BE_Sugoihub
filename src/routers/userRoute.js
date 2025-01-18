@@ -108,7 +108,7 @@ const userRouter = (app) => {
     router.post("/comment/post", uploadmulter.array('images', 3), verifyToken, comment)
     router.get("/comment/post/allcomment/:id", verifyToken, getCommentByPost)
     router.get("/comment/post/replycomment/:id", verifyToken, getReplyComment)
-    router.post("/comment/reply", uploadmulter.array('images', 3), replyComment)
+    router.post("/comment/reply", uploadmulter.array('images', 3), verifyToken, replyComment)
     router.delete("/comment/:id", deleteComment)
     router.post("/comment/like", likeComment)
 

@@ -55,15 +55,15 @@ export const initSocket = (server) => {
 
 
             });
-            socket.on("updategroupchat", async (data) => {
+            socket.on("updategroupchat", async (updateData) => {
 
 
-                console.log("Có data mới của groiup chát: ", data);
+                console.log("Có data mới của groiup chát: ", updateData);
 
                 try {
-                    const newdata = await updateConversation(data)
+                    const newdata = await updateConversation(updateData)
                     console.log("Có data trả về  ", newdata);
-                    io.emit("newinforgroupchat", data);
+                    io.emit("newinforgroupchat", newdata);
                 } catch (error) {
                     console.error("Lỗi lưu nhé  ", error.message);
 
@@ -118,14 +118,7 @@ export const initSocket = (server) => {
             });
 
 
-            socket.on("adminNotification", (data) => {
-                try {
 
-
-                } catch (error) {
-                    console.error("Lỗi xử lý sự kiện tạo thông báo mới từ admin", error.message);
-                }
-            })
             socket.on("likepost", async (data) => {
                 try {
 

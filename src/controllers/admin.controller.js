@@ -96,7 +96,52 @@ export const hidePost = async (req, res) => {
 export const getAllUser = async (req, res) => {
     try {
 
-        const users = await User.find().select('-password -refreshToken').populate('friends', 'username avatar');
+        const users = await User.aggregate([
+            {
+                $lookup: {
+                    from: 'posts',
+                    localField: '_id',
+                    foreignField: 'user',
+                    pipeline: [
+                        {
+                            $match: {
+                                hide: false
+                            }
+                        }
+                    ],
+                    as: 'posts'
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'friends',
+                    foreignField: '_id',
+                    pipeline: [
+                        {
+                            $project: {
+                                avatar: 1,
+                                username: 1
+                            }
+                        }
+                    ],
+                    as: 'friends'
+                }
+            },
+            {
+                $addFields: {
+                    totalPosts: { $size: '$posts' }
+                }
+            },
+            {
+                $project: {
+                    password: 0,
+                    refreshToken: 0,
+                    __v: 0,
+                    posts: 0
+                }
+            }
+        ]);
 
         return res.status(200).json({
             success: true,
@@ -122,7 +167,7 @@ export const getAllPost = async (req, res) => {
             { $skip: skip },
             { $limit: limit },
 
-            // Lookup để lấy danh sách comments
+
             {
                 $lookup: {
                     from: 'comments',
@@ -139,7 +184,7 @@ export const getAllPost = async (req, res) => {
                 },
             },
 
-            // Lookup để lấy thông tin người tạo bài viết
+
             {
                 $lookup: {
                     from: 'users',
@@ -457,7 +502,7 @@ export const getAllCommentByPost = async (req, res) => {
                 $project: {
                     content: 1,
                     likesCount: 1,
-
+                    gif: 1,
                     authorInfo: 1,
                     parentId: 1,
                     postId: 1,

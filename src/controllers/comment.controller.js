@@ -41,7 +41,7 @@ export const comment = async (req, res) => {
         const comment = await Comment.aggregate([
             {
                 $match: {
-                    postId: new mongoose.Types.ObjectId(postId),
+                    _id: newComment._id,
 
                 }
             },
@@ -407,11 +407,178 @@ export const replyComment = async (req, res) => {
         });
 
         await newComment.save();
-        console.log("xem cs gif k ", newComment)
+        const replie = await Comment.aggregate([
+            {
+                $match: {
+                    _id: newComment._id
+                }
+            },
+            {
+                $graphLookup: {
+                    from: "comments",
+                    startWith: "$_id",
+                    connectFromField: "_id",
+                    connectToField: "parentId",
+                    as: "childReplies"
+                }
+            },
+            {
+                $addFields: {
+                    allComments: {
+                        $concatArrays: [["$$ROOT"], "$childReplies"]
+                    }
+                }
+            },
+            {
+                $unwind: "$allComments"
+            },
+
+            {
+                $lookup: {
+                    from: "comments",
+                    let: { commentId: "$allComments._id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: ["$parentId", "$$commentId"]
+                                }
+                            }
+                        },
+                        {
+                            $count: "replyCount"
+                        }
+                    ],
+                    as: "replyCountInfo"
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "allComments.author",
+                    foreignField: "_id",
+                    as: "authorInfo"
+                }
+            },
+            {
+                $unwind: "$authorInfo"
+            },
+            {
+                $addFields: {
+                    "allComments.likesCount": { $size: "$allComments.likes" },
+                    "allComments.replyCount": {
+                        $ifNull: [{ $arrayElemAt: ["$replyCountInfo.replyCount", 0] }, 0]
+                    },
+                    "allComments.isLiked": {
+                        $cond: {
+                            if: { $eq: [{ $type: req.user }, 'missing'] },
+                            then: false,
+                            else: {
+                                $in: [
+                                    { $toObjectId: req.user._id.toString() },
+                                    "$allComments.likes"
+                                ]
+                            }
+                        }
+                    },
+                    "allComments.author": {
+                        _id: "$authorInfo._id",
+                        username: "$authorInfo.username",
+                        avatar: "$authorInfo.avatar"
+                    }
+                }
+            },
+            {
+                $replaceRoot: { newRoot: "$allComments" }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    content: 1,
+                    parentId: 1,
+                    postId: 1,
+                    gif: 1,
+                    createdAt: 1,
+                    likesCount: 1,
+                    replyCount: 1,
+                    isLiked: 1,
+                    images: 1,
+                    author: 1,
+                    allComments: 1
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            }
+        ]);
+        const replyCount = await Comment.aggregate([
+            {
+                $match: {
+                    _id: new mongoose.Types.ObjectId(parentId)
+
+                }
+            },
+
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "author",
+                    foreignField: "_id",
+                    as: "author",
+                },
+            },
+            {
+                $unwind: "$author",
+            },
+            {
+                $addFields: {
+                    likesCount: { $size: '$likes' },
+                    isLiked: {
+                        $cond: {
+                            if: { $eq: [{ $type: req.user }, 'missing'] },
+                            then: false,
+                            else: {
+                                $in: [
+                                    { $toObjectId: req.user._id.toString() },
+                                    '$likes'
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+
+                $graphLookup: {
+                    from: "comments",
+                    startWith: "$_id",
+                    connectFromField: "_id",
+                    connectToField: "parentId",
+                    as: "allReplies",
+                },
+            },
+            {
+                $addFields: {
+                    replyCount: { $size: "$allReplies" },
+                },
+            },
+            {
+                $project: {
+                    parentId: 1,
+                    replyCount: 1,
+
+                }
+            }
+        ]);
+        const firstReplyCount = replyCount && replyCount.length > 0 ? replyCount[0] : null;
         return res.status(201).json({
             success: true,
             message: "Đã bình luận bài viết thành công ",
-            comment: newComment,
+            data: {
+                replie,
+                firstReplyCount
+            }
+
         });
     } catch (error) {
         return res.status(500).json(

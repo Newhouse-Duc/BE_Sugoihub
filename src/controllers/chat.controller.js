@@ -366,9 +366,9 @@ export const readMessage = async (data) => {
 
 
 
-export const updateConversation = async (data) => {
+export const updateConversation = async (updateData) => {
     try {
-        const { conversationId, admin, groupName, avatar, avatardelete } = data;
+        const { conversationId, admin, groupName, avatar, avatardelete } = updateData;
         if (!conversationId || !groupName) {
             throw new Error("Thiếu thông tin cần thiết!");
         }
@@ -403,7 +403,7 @@ export const updateConversation = async (data) => {
             });
 
 
-        const formattedResponse = {
+        const data = {
             conversationId: populatedConversation._id,
             isGroup: true,
             admin: populatedConversation.admin,
@@ -414,8 +414,7 @@ export const updateConversation = async (data) => {
             updatedAt: populatedConversation.updatedAt,
         };
         return {
-            message: "Thay đổi thành công",
-            formattedResponse
+            data
         }
 
 
